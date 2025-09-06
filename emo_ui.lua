@@ -58,10 +58,11 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         dragging = false, winMouseOffset = nil, navWidth = 250,
         windowNum = Lib.WindowCount + 1,
         deadZone = nil,
-        maxContentHeight = height - 50 -- Account for header and padding
+        maxContentHeight = height - 50
     }
     Lib.Windows[title] = window
     Lib.WindowCount = Lib.WindowCount + 1
+    window.activeCategory = window.categories[1] -- Set first category as active by default
 
     function window:toggle()
         self.visible = not self.visible
@@ -112,6 +113,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
 
         -- Content area
         if self.activeCategory and not self.activeCategory.collapsed then
+            print("EMO Attempting to draw content for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"))
             local contentX = loc[1] + self.navWidth + 10
             local contentWidth = size[1] - self.navWidth - 10
             if contentX + contentWidth > loc[1] + size[1] then contentWidth = size[1] - self.navWidth - 10 end
@@ -121,6 +123,10 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             dx9.DrawFilledBox({contentX, contentY}, {contentX + contentWidth, contentY + self.maxContentHeight}, self.theme.background)
             self.activeCategory:draw(contentX, contentY, maxY)
             print("EMO Drew content area for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"), " coords: ", contentX, contentY, contentWidth, self.maxContentHeight)
+        elseif self.activeCategory then
+            print("EMO Content area skipped, category " .. (self.activeCategory.name or "unknown") .. " is collapsed at ", os.date("%I:%M %p PDT"))
+        else
+            print("EMO No active category to draw content at ", os.date("%I:%M %p PDT"))
         end
 
         -- Dragging support
@@ -147,7 +153,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         elseif not Lib.Key or Lib.Key ~= self.toggleKey then
             self.toggleKeyHolding = false
         end
-        print("EMO Checking toggle key ", self.toggleKey, " at ", os.date("%I:%M %p PDT"), " key pressed: ", Lib.Key == self.toggleKey, " raw key: ", Lib.Key)
+        print("EMO Checking toggle key ", self.toggleKey, " at ", os.date("%I:%M %p PDT"), " key pressed: ", Lib.Key == self.toggleKey, " raw key: ", tostring(Lib.Key))
 
         print("EMO Draw completed at ", os.date("%I:%M %p PDT"))
     end
@@ -215,7 +221,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             return slider
         end
         table.insert(window.categories, category)
-        if not window.activeCategory then window.activeCategory = category end
+        if not window.activeCategory then window.activeCategory = category end -- Ensure first category is active
         return category
     end
     activeWindow = window
