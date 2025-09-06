@@ -47,17 +47,18 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
     if Lib.Windows[title] then return Lib.Windows[title] end
     local window = {
         title = title, location = {x, y}, size = {width, height}, toggleKey = toggleKey or "[F2]",
-        visible = true, -- Default to visible
+        visible = true,
         categories = {}, activeCategory = nil, theme = {
             background = Lib.BackgroundColor,
             font = Lib.FontColor,
             accent = Lib.AccentColor,
             outline = Lib.OutlineColor,
-            button = {200, 140, 0, 0.8} -- Deep amber
+            button = {200, 140, 0, 0.8}
         },
         dragging = false, winMouseOffset = nil, navWidth = 250,
         windowNum = Lib.WindowCount + 1,
-        deadZone = nil
+        deadZone = nil,
+        maxContentHeight = height - 50 -- Account for header and padding
     }
     Lib.Windows[title] = window
     Lib.WindowCount = Lib.WindowCount + 1
@@ -114,10 +115,12 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             local contentX = loc[1] + self.navWidth + 10
             local contentWidth = size[1] - self.navWidth - 10
             if contentX + contentWidth > loc[1] + size[1] then contentWidth = size[1] - self.navWidth - 10 end
-            dx9.DrawFilledBox({contentX - 2, loc[2] + 30 - 2}, {contentX + contentWidth + 2, loc[2] + size[2] + 2}, self.theme.outline)
-            dx9.DrawFilledBox({contentX, loc[2] + 30}, {contentX + contentWidth, loc[2] + size[2]}, self.theme.background)
-            self.activeCategory:draw(contentX, loc[2] + 30)
-            print("EMO Drew content area for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"), " coords: ", contentX, loc[2] + 30, contentWidth, size[2])
+            local contentY = loc[2] + 30
+            local maxY = contentY + self.maxContentHeight
+            dx9.DrawFilledBox({contentX - 2, contentY - 2}, {contentX + contentWidth + 2, contentY + self.maxContentHeight + 2}, self.theme.outline)
+            dx9.DrawFilledBox({contentX, contentY}, {contentX + contentWidth, contentY + self.maxContentHeight}, self.theme.background)
+            self.activeCategory:draw(contentX, contentY, maxY)
+            print("EMO Drew content area for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"), " coords: ", contentX, contentY, contentWidth, self.maxContentHeight)
         end
 
         -- Dragging support
@@ -137,34 +140,37 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             self.winMouseOffset = nil
         end
 
-        -- Toggle with GetKey (Brycki404 style)
+        -- Toggle with GetKey
         if Lib.Key and Lib.Key ~= "[None]" and Lib.Key == self.toggleKey and not self.toggleKeyHolding then
             self:toggle()
             self.toggleKeyHolding = true
         elseif not Lib.Key or Lib.Key ~= self.toggleKey then
             self.toggleKeyHolding = false
         end
-        print("EMO Checking toggle key ", self.toggleKey, " at ", os.date("%I:%M %p PDT"), " key pressed: ", Lib.Key == self.toggleKey)
+        print("EMO Checking toggle key ", self.toggleKey, " at ", os.date("%I:%M %p PDT"), " key pressed: ", Lib.Key == self.toggleKey, " raw key: ", Lib.Key)
 
         print("EMO Draw completed at ", os.date("%I:%M %p PDT"))
     end
 
     function window:addCategory(name, toggleKey)
         local category = {name = name, controls = {}, collapsed = false, toggleKey = toggleKey or "[F2]"}
-        function category:draw(x, y)
+        function category:draw(x, y, maxY)
             local yPos = y + 10
             for _, control in ipairs(self.controls) do
                 control.x, control.y = x + 10, yPos
+                if yPos + control.height > maxY then
+                    print("!! EMO Control out of bounds at ", os.date("%I:%M %p PDT"), " type: ", control.text, " coords: ", control.x, control.y, " maxY: ", maxY)
+                    yPos = yPos + 30 -- Skip to next position
+                    goto continue
+                end
                 local success = pcall(function()
                     control:draw()
-                    if control.x + control.width > x + 400 or control.y + control.height > y + 400 then
-                        print("!! EMO Control out of bounds at ", os.date("%I:%M %p PDT"), " type: ", control.text, " coords: ", control.x, control.y)
-                    end
                 end)
                 if not success then
                     print("!! EMO Failed to draw control at ", os.date("%I:%M %p PDT"), " type: ", control.text or "unknown", " coords: ", control.x, control.y, " error: ", debug.traceback())
                 end
                 yPos = yPos + 30
+                ::continue::
             end
         end
         function category:addToggle(text, default)
