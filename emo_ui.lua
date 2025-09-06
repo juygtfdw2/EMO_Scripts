@@ -1,6 +1,6 @@
 -- EMO_UI Library for DX9WARE
--- Author: Built from scratch for reliability by EMO, inspired by "SKECH" and adapted from Brycki404's DXLib
--- Enhanced with drag support, quality improvements, collapsible categories, and advanced toggle detection
+-- Author: Built from scratch for reliability by EMO, inspired by "SKECH" and adapted from Brycki404's DXLibUI
+-- Enhanced with drag support, quality improvements, collapsible categories, and improved toggle detection
 
 local EMO_UI = {}
 local activeWindow = nil
@@ -29,7 +29,7 @@ local Lib = {
 function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
     local window = {
         title = title, location = {x, y}, size = {width, height}, toggleKey = toggleKey or "[F2]",
-        visible = false, -- Controlled by toggleKey
+        visible = true, -- Match Brycki404's default visibility
         categories = {}, activeCategory = nil, theme = {
             background = {30, 40, 60},  -- Dark slate blue
             font = {0, 255, 100},       -- Neon green
@@ -116,32 +116,32 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             self.winMouseOffset = nil
         end
 
-        -- Toggle with enhanced GetKey detection
+        -- Toggle with enhanced GetKey detection (aligned with Brycki404)
         print("EMO Checking toggle key ", keyName, " at ", os.date("%I:%M %p PDT"), " key pressed: ", key and key[keyName], " raw key: ", key)
-        -- Log all keys in the table
-        if key then
-            for k, v in pairs(key) do
-                print("EMO Key detected: ", k, " value: ", v)
-            end
-        end
         if key and key[keyName] and not self.toggleKeyHolding then
             self:toggle()
             self.toggleKeyHolding = true
         elseif not key or not key[keyName] then
             self.toggleKeyHolding = false
         end
-        -- Alternative toggle checks
-        if key and key.F2 and not self.toggleKeyHolding then -- Direct F2 check
+        -- Fallback toggle checks
+        if key and key.F2 and not self.toggleKeyHolding then
             self:toggle()
             self.toggleKeyHolding = true
         elseif not key or not key.F2 then
             self.toggleKeyHolding = false
         end
-        if key and key["0x71"] and not self.toggleKeyHolding then -- Virtual key code for F2 (0x71)
+        if key and key["0x71"] and not self.toggleKeyHolding then -- VK_F2
             self:toggle()
             self.toggleKeyHolding = true
         elseif not key or not key["0x71"] then
             self.toggleKeyHolding = false
+        end
+        -- Initial toggle to match Brycki404's behavior
+        if not self.initialToggled and drawCount == 0 then -- Assume first frame toggle
+            self:toggle()
+            self.initialToggled = true
+            print("EMO Initial toggle activated at ", os.date("%I:%M %p PDT"))
         end
 
         print("EMO Draw completed at ", os.date("%I:%M %p PDT"))
@@ -154,7 +154,6 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                 control.x, control.y = x + 10, yPos
                 local success = pcall(function()
                     control:draw()
-                    -- Ensure controls fit within content area
                     if control.x + control.width > x + 400 or control.y + control.height > y + 400 then
                         print("!! EMO Control out of bounds at ", os.date("%I:%M %p PDT"), " type: ", control.text, " coords: ", control.x, control.y)
                     end
