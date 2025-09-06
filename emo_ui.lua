@@ -1,6 +1,6 @@
 -- EMO_UI Library for DX9WARE
 -- Author: Built from scratch for reliability by EMO
--- Unique layout inspired by "SKECH" image, branded "EMO"
+-- Unique layout with collapsible sidebar, inspired by "SKECH," extended for autoplay, autofarming, skill checks
 
 local EMO_UI = {}
 local activeWindow = nil
@@ -15,7 +15,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             outline = {200, 200, 200},  -- Metallic silver
             button = {200, 140, 0, 0.8} -- Deep amber
         },
-        navWidth = 200
+        navWidth = 250 -- Increased for more categories
     }
     function window:toggle()
         self.visible = not self.visible
@@ -55,10 +55,12 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             dx9.DrawBox({contentX, contentY}, {contentX + contentWidth, self.y + self.height}, self.theme.background)
             self.activeCategory:draw(contentX, contentY)
         end
-        if dx9.isKeyPressed(self.toggleKey) then self:toggle() wait(0.2) end
+        if dx9.isKeyPressed(self.toggleKey) or (self.activeCategory and dx9.isKeyPressed(self.activeCategory.toggleKey)) then
+            self:toggle() wait(0.2)
+        end
     end
-    function window:addCategory(name)
-        local category = {name = name, controls = {}, collapsed = false}
+    function window:addCategory(name, toggleKey)
+        local category = {name = name, controls = {}, collapsed = false, toggleKey = toggleKey or "[F2]"}
         function category:draw(x, y)
             local yPos = y + 10
             for _, control in ipairs(self.controls) do
@@ -69,14 +71,14 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         end
         function category:addToggle(text, default)
             local toggle = {
-                text = text, state = default, x = 0, y = 0, width = 400, height = 20 -- Wider content area
+                text = text, state = default, x = 0, y = 0, width = 400, height = 20
             }
             function toggle:draw()
                 dx9.DrawBox({self.x, self.y}, {self.x + self.width, self.y + self.height}, self.theme.button)
                 dx9.DrawString({self.x + 5, self.y + 5}, self.theme.font, self.text .. ": " .. tostring(self.state))
                 if dx9.isMouseInRegion({self.x, self.y}, {self.x + self.width, self.y + self.height}) and dx9.isLeftClick() then
                     self.state = not self.state
-                    print("EMO " .. self.text .. " toggled: ", self.state, " at ", os.date("%I:%M %p PDT"))
+                    print("EMO " .. self.text .. " toggled for " .. Config.game .. ": ", self.state, " at ", os.date("%I:%M %p PDT"))
                     wait(0.2) -- Debounce
                 end
             end
@@ -95,7 +97,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                 if dx9.isMouseInRegion({self.x, self.y}, {self.x + self.width, self.y + self.height}) and dx9.isLeftClickHeld() then
                     local mouseX = dx9.GetMouse().x - self.x - 5
                     self.value = math.floor(math.clamp(mouseX / (self.width - 20) * (self.max - self.min) + self.min, self.min, self.max))
-                    print("EMO " .. self.text .. " adjusted: ", self.value, " at ", os.date("%I:%M %p PDT"))
+                    print("EMO " .. self.text .. " adjusted for " .. Config.game .. ": ", self.value, " at ", os.date("%I:%M %p PDT"))
                 end
             end
             table.insert(self.controls, slider)
