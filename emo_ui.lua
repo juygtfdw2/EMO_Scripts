@@ -29,7 +29,7 @@ local Lib = {
 function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
     local window = {
         title = title, location = {x, y}, size = {width, height}, toggleKey = toggleKey or "[F2]",
-        visible = true, -- Match Brycki404's default visibility
+        visible = true, -- Default to visible like Brycki404, with toggle option
         categories = {}, activeCategory = nil, theme = {
             background = {30, 40, 60},  -- Dark slate blue
             font = {0, 255, 100},       -- Neon green
@@ -116,32 +116,24 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             self.winMouseOffset = nil
         end
 
-        -- Toggle with enhanced GetKey detection (aligned with Brycki404)
-        print("EMO Checking toggle key ", keyName, " at ", os.date("%I:%M %p PDT"), " key pressed: ", key and key[keyName], " raw key: ", key)
-        if key and key[keyName] and not self.toggleKeyHolding then
-            self:toggle()
-            self.toggleKeyHolding = true
-        elseif not key or not key[keyName] then
-            self.toggleKeyHolding = false
-        end
-        -- Fallback toggle checks
-        if key and key.F2 and not self.toggleKeyHolding then
-            self:toggle()
-            self.toggleKeyHolding = true
-        elseif not key or not key.F2 then
-            self.toggleKeyHolding = false
-        end
-        if key and key["0x71"] and not self.toggleKeyHolding then -- VK_F2
-            self:toggle()
-            self.toggleKeyHolding = true
-        elseif not key or not key["0x71"] then
-            self.toggleKeyHolding = false
-        end
-        -- Initial toggle to match Brycki404's behavior
-        if not self.initialToggled and drawCount == 0 then -- Assume first frame toggle
-            self:toggle()
-            self.initialToggled = true
-            print("EMO Initial toggle activated at ", os.date("%I:%M %p PDT"))
+        -- Toggle with GetKey (aligned with Brycki404 style)
+        local keyPressed = false
+        if key then
+            print("EMO Checking toggle key ", keyName, " at ", os.date("%I:%M %p PDT"), " raw key: ", key)
+            for k, v in pairs(key) do
+                print("EMO Key detected: ", k, " value: ", v)
+                if k == keyName or k == "F2" or k == "0x71" then
+                    keyPressed = v
+                    break
+                end
+            end
+            print("EMO Key pressed status: ", keyPressed)
+            if keyPressed and not self.toggleKeyHolding then
+                self:toggle()
+                self.toggleKeyHolding = true
+            elseif not keyPressed then
+                self.toggleKeyHolding = false
+            end
         end
 
         print("EMO Draw completed at ", os.date("%I:%M %p PDT"))
