@@ -1,9 +1,30 @@
 -- EMO_UI Library for DX9WARE
--- Author: Built from scratch for reliability by EMO, inspired by "SKECH"
--- Enhanced with drag support and improved quality
+-- Author: Built from scratch for reliability by EMO, inspired by "SKECH" and adapted from Brycki404's DXLib
+-- Enhanced with drag support, quality improvements, and collapsible categories
 
 local EMO_UI = {}
 local activeWindow = nil
+
+-- Integrate basic Lib functionality from DXLib
+local Lib = {
+    MouseInArea = function(area, deadzone)
+        assert(type(area) == "table" and #area == 4, "[Error] MouseInArea: First Argument needs to be a table with 4 values!")
+        local mouse = dx9.GetMouse()
+        if deadzone ~= nil then
+            if mouse.x > area[1] and mouse.y > area[2] and mouse.x < area[3] and mouse.y < area[4] then
+                if mouse.x > deadzone[1] and mouse.y > deadzone[2] and mouse.x < deadzone[3] and mouse.y < deadzone[4] then
+                    return false
+                else
+                    return true
+                end
+            else
+                return false
+            end
+        else
+            return mouse.x > area[1] and mouse.y > area[2] and mouse.x < area[3] and mouse.y < area[4]
+        end
+    end
+}
 
 function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
     local window = {
@@ -32,9 +53,9 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         local size = self.size
         local mouse = dx9.GetMouse()
         
-        -- Draw window frame with improved layering
+        -- Draw window frame with improved layering (inspired by DXLib)
         dx9.DrawFilledBox({loc[1] - 1, loc[2] - 1}, {loc[1] + size[1] + 1, loc[2] + size[2] + 1}, {0, 0, 0}) -- Outer shadow
-        dx9.DrawFilledBox({loc[1], loc[2]}, {loc[1] + size[1], loc[2] + size[2]}, self.theme.background) -- Background
+        dx9.DrawFilledBox(loc, {loc[1] + size[1], loc[2] + size[2]}, self.theme.background) -- Background
         dx9.DrawFilledBox({loc[1] + 1, loc[2] + 1}, {loc[1] + size[1] - 1, loc[2] + size[2] - 1}, self.theme.outline) -- Inner outline
         print("EMO Drew frame at ", os.date("%I:%M %p PDT"), " coords: ", loc[1], loc[2], size[1], size[2])
 
@@ -50,7 +71,8 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         dx9.DrawFilledBox({navX, navY}, {navEndX, loc[2] + size[2]}, self.theme.accent)
         local yOffset = navY + 10
         for _, category in ipairs(self.categories) do
-            local isHovered = dx9.MouseInArea({navX, yOffset - 5, navEndX, yOffset + 15})
+            local isHovered = Lib.MouseInArea({navX, yOffset - 5, navEndX, yOffset + 15})
+            print("EMO Checking hover for " .. category.name .. " at ", os.date("%I:%M %p PDT"), " area: ", navX, yOffset - 5, navEndX, yOffset + 15, " hovered: ", isHovered)
             local bgColor = isHovered and {0, 200, 80, 0.5} or self.theme.button
             dx9.DrawFilledBox({navX, yOffset - 5}, {navEndX, yOffset + 15}, bgColor)
             dx9.DrawString({navX + 10, yOffset}, self.theme.font, category.name)
@@ -59,7 +81,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                 self.activeCategory = category.collapsed and nil or category
                 print("EMO Category " .. category.name .. " " .. (category.collapsed and "collapsed" or "expanded") .. " at ", os.date("%I:%M %p PDT"))
             end
-            yOffset = yOffset + 25 -- Increased spacing for better readability
+            yOffset = yOffset + 25 -- Increased spacing for readability
         end
         print("EMO Drew navigation panel at ", os.date("%I:%M %p PDT"), " coords: ", navX, navY, navEndX, loc[2] + size[2])
 
@@ -74,8 +96,8 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             print("EMO Drew content area for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"), " coords: ", contentX, loc[2] + 30, contentWidth, size[2])
         end
 
-        -- Dragging support
-        if dx9.isLeftClickHeld() and not self.dragging and dx9.MouseInArea({loc[1] - 2, loc[2] - 2, loc[1] + size[1] + 2, loc[2] + 22}) then
+        -- Dragging support (inspired by DXLib)
+        if dx9.isLeftClickHeld() and not self.dragging and Lib.MouseInArea({loc[1] - 2, loc[2] - 2, loc[1] + size[1] + 2, loc[2] + 22}) then
             self.dragging = true
             if not self.winMouseOffset then
                 self.winMouseOffset = {mouse.x - loc[1], mouse.y - loc[2]}
@@ -113,7 +135,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                     dx9.DrawFilledBox({self.x, self.y}, {self.x + self.width, self.y + self.height}, {0, 0, 0})
                     dx9.DrawFilledBox({self.x + 1, self.y + 1}, {self.x + self.width - 1, self.y + self.height - 1}, self.theme.button)
                     dx9.DrawString({self.x + 5, self.y + 5}, self.theme.font, self.text .. ": " .. tostring(self.state))
-                    if dx9.MouseInArea({self.x, self.y, self.x + self.width, self.y + self.height}) and dx9.isLeftClickHeld() then
+                    if Lib.MouseInArea({self.x, self.y, self.x + self.width, self.y + self.height}) and dx9.isLeftClickHeld() then
                         self.state = not self.state
                         print("EMO " .. self.text .. " toggled for " .. Config.game .. ": ", self.state, " at ", os.date("%I:%M %p PDT"))
                     end
@@ -134,7 +156,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                     local barWidth = (self.value - self.min) / (self.max - self.min) * (self.width - 20)
                     dx9.DrawFilledBox({self.x + 5, self.y + 5}, {self.x + 5 + barWidth, self.y + 15}, self.theme.accent)
                     dx9.DrawString({self.x + 5, self.y + 5}, self.theme.font, self.text .. ": " .. self.value)
-                    if dx9.MouseInArea({self.x, self.y, self.x + self.width, self.y + self.height}) and dx9.isLeftClickHeld() then
+                    if Lib.MouseInArea({self.x, self.y, self.x + self.width, self.y + self.height}) and dx9.isLeftClickHeld() then
                         local mouseX = dx9.GetMouse().x - self.x - 5
                         self.value = math.floor(math.clamp(mouseX / (self.width - 20) * (self.max - self.min) + self.min, self.min, self.max))
                         print("EMO " .. self.text .. " adjusted for " .. Config.game .. ": ", self.value, " at ", os.date("%I:%M %p PDT"))
