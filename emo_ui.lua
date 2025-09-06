@@ -1,6 +1,6 @@
 -- EMO_UI Library for DX9WARE
 -- Author: Built from scratch for reliability by EMO, inspired by "SKECH" and adapted from Brycki404's DXLib
--- Enhanced with drag support, quality improvements, and collapsible categories
+-- Enhanced with drag support, quality improvements, collapsible categories, and toggle fix
 
 local EMO_UI = {}
 local activeWindow = nil
@@ -52,6 +52,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         local loc = self.location
         local size = self.size
         local mouse = dx9.GetMouse()
+        local key = dx9.GetKey()
         
         -- Draw window frame with improved layering
         dx9.DrawFilledBox({loc[1] - 1, loc[2] - 1}, {loc[1] + size[1] + 1, loc[2] + size[2] + 1}, {0, 0, 0}) -- Outer shadow
@@ -108,16 +109,19 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             if self.location[2] < 0 then self.location[2] = 0 end
             if self.location[1] + size[1] > dx9.size().width then self.location[1] = dx9.size().width - size[1] end
             if self.location[2] + size[2] > dx9.size().height then self.location[2] = dx9.size().height - size[2] end
+            print("EMO Dragging at ", os.date("%I:%M %p PDT"), " new loc: ", self.location[1], self.location[2])
         elseif not dx9.isLeftClickHeld() then
             self.dragging = false
             self.winMouseOffset = nil
         end
 
-        -- Toggle with GetKey (Brycki404 style)
-        if dx9.GetKey() and dx9.GetKey()[string.sub(self.toggleKey, 2, -2)] and not self.toggleKeyHolding then
+        -- Toggle with GetKey (adjusted for better detection)
+        local keyName = string.sub(self.toggleKey, 2, -2) -- Extract "F2" from "[F2]"
+        print("EMO Checking toggle key ", keyName, " at ", os.date("%I:%M %p PDT"), " key pressed: ", key and key[keyName])
+        if key and key[keyName] and not self.toggleKeyHolding then
             self:toggle()
             self.toggleKeyHolding = true
-        elseif not dx9.GetKey() or not dx9.GetKey()[string.sub(self.toggleKey, 2, -2)] then
+        elseif not key or not key[keyName] then
             self.toggleKeyHolding = false
         end
 
