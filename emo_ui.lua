@@ -1,6 +1,6 @@
 -- EMO_UI Library for DX9WARE
 -- Author: Built from scratch for reliability by EMO, inspired by "SKECH" and adapted from Brycki404's DXLib
--- Enhanced with drag support, quality improvements, collapsible categories, and improved toggle detection
+-- Enhanced with drag support, quality improvements, collapsible categories, and advanced toggle detection
 
 local EMO_UI = {}
 local activeWindow = nil
@@ -118,6 +118,12 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
 
         -- Toggle with enhanced GetKey detection
         print("EMO Checking toggle key ", keyName, " at ", os.date("%I:%M %p PDT"), " key pressed: ", key and key[keyName], " raw key: ", key)
+        -- Log all keys in the table
+        if key then
+            for k, v in pairs(key) do
+                print("EMO Key detected: ", k, " value: ", v)
+            end
+        end
         if key and key[keyName] and not self.toggleKeyHolding then
             self:toggle()
             self.toggleKeyHolding = true
