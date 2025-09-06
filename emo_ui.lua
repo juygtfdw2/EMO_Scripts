@@ -116,7 +116,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             self.winMouseOffset = nil
         end
 
-        -- Toggle with improved GetKey detection
+        -- Toggle with enhanced GetKey detection
         print("EMO Checking toggle key ", keyName, " at ", os.date("%I:%M %p PDT"), " key pressed: ", key and key[keyName], " raw key: ", key)
         if key and key[keyName] and not self.toggleKeyHolding then
             self:toggle()
@@ -124,11 +124,17 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         elseif not key or not key[keyName] then
             self.toggleKeyHolding = false
         end
-        -- Fallback toggle for testing
+        -- Alternative toggle checks
         if key and key.F2 and not self.toggleKeyHolding then -- Direct F2 check
             self:toggle()
             self.toggleKeyHolding = true
         elseif not key or not key.F2 then
+            self.toggleKeyHolding = false
+        end
+        if key and key["0x71"] and not self.toggleKeyHolding then -- Virtual key code for F2 (0x71)
+            self:toggle()
+            self.toggleKeyHolding = true
+        elseif not key or not key["0x71"] then
             self.toggleKeyHolding = false
         end
 
