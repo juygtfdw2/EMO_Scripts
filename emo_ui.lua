@@ -29,7 +29,7 @@ local Lib = {
 function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
     local window = {
         title = title, location = {x, y}, size = {width, height}, toggleKey = toggleKey or "[F2]",
-        visible = true, -- Default visible for testing
+        visible = false, -- Controlled by toggleKey
         categories = {}, activeCategory = nil, theme = {
             background = {30, 40, 60},  -- Dark slate blue
             font = {0, 255, 100},       -- Neon green
@@ -53,13 +53,13 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         local size = self.size
         local mouse = dx9.GetMouse()
         
-        -- Draw window frame with improved layering (inspired by DXLib)
+        -- Draw window frame with improved layering
         dx9.DrawFilledBox({loc[1] - 1, loc[2] - 1}, {loc[1] + size[1] + 1, loc[2] + size[2] + 1}, {0, 0, 0}) -- Outer shadow
         dx9.DrawFilledBox(loc, {loc[1] + size[1], loc[2] + size[2]}, self.theme.background) -- Background
         dx9.DrawFilledBox({loc[1] + 1, loc[2] + 1}, {loc[1] + size[1] - 1, loc[2] + size[2] - 1}, self.theme.outline) -- Inner outline
         print("EMO Drew frame at ", os.date("%I:%M %p PDT"), " coords: ", loc[1], loc[2], size[1], size[2])
 
-        -- Draw header with better contrast
+        -- Draw header with better contrast and drag region
         dx9.DrawFilledBox({loc[1], loc[2]}, {loc[1] + size[1], loc[2] + 30}, self.theme.accent)
         dx9.DrawString({loc[1] + 10, loc[2] + 5}, self.theme.font, "EMO - " .. self.title)
         print("EMO Drew header at ", os.date("%I:%M %p PDT"))
@@ -96,8 +96,8 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             print("EMO Drew content area for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"), " coords: ", contentX, loc[2] + 30, contentWidth, size[2])
         end
 
-        -- Dragging support (inspired by DXLib)
-        if dx9.isLeftClickHeld() and not self.dragging and Lib.MouseInArea({loc[1] - 2, loc[2] - 2, loc[1] + size[1] + 2, loc[2] + 22}) then
+        -- Dragging support (fixed to ensure functionality)
+        if dx9.isLeftClickHeld() and not self.dragging and Lib.MouseInArea({loc[1], loc[2], loc[1] + size[1], loc[2] + 30}) then -- Drag only header
             self.dragging = true
             if not self.winMouseOffset then
                 self.winMouseOffset = {mouse.x - loc[1], mouse.y - loc[2]}
@@ -113,6 +113,14 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             self.winMouseOffset = nil
         end
 
+        -- Toggle with GetKey (Brycki404 style)
+        if dx9.GetKey() and dx9.GetKey()[string.sub(self.toggleKey, 2, -2)] and not self.toggleKeyHolding then
+            self:toggle()
+            self.toggleKeyHolding = true
+        elseif not dx9.GetKey() or not dx9.GetKey()[string.sub(self.toggleKey, 2, -2)] then
+            self.toggleKeyHolding = false
+        end
+
         print("EMO Draw completed at ", os.date("%I:%M %p PDT"))
     end
     function window:addCategory(name, toggleKey)
@@ -121,8 +129,14 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             local yPos = y + 10
             for _, control in ipairs(self.controls) do
                 control.x, control.y = x + 10, yPos
-                local success = pcall(function() control:draw() end)
-                if not success then print("!! EMO Failed to draw control at ", os.date("%I:%M %p PDT"), " type: ", control.text or "unknown", " coords: ", control.x, control.y) end
+                local success = pcall(function()
+                    control:draw()
+                    -- Ensure controls fit within content area
+                    if control.x + control.width > x + 400 or control.y + control.height > y + 400 then
+                        print("!! EMO Control out of bounds at ", os.date("%I:%M %p PDT"), " type: ", control.text, " coords: ", control.x, control.y)
+                    end
+                end)
+                if not success then print("!! EMO Failed to draw control at ", os.date("%I:%M %p PDT"), " type: ", control.text or "unknown", " coords: ", control.x, control.y, " error: ", debug.traceback()) end
                 yPos = yPos + 30
             end
         end
@@ -140,7 +154,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                         print("EMO " .. self.text .. " toggled for " .. Config.game .. ": ", self.state, " at ", os.date("%I:%M %p PDT"))
                     end
                 end)
-                if not success then print("!! EMO Failed to draw toggle " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y) end
+                if not success then print("!! EMO Failed to draw toggle " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y, " error: ", debug.traceback()) end
             end
             table.insert(self.controls, toggle)
             return toggle
@@ -162,7 +176,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                         print("EMO " .. self.text .. " adjusted for " .. Config.game .. ": ", self.value, " at ", os.date("%I:%M %p PDT"))
                     end
                 end)
-                if not success then print("!! EMO Failed to draw slider " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y) end
+                if not success then print("!! EMO Failed to draw slider " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y, " error: ", debug.traceback()) end
             end
             table.insert(self.controls, slider)
             return slider
@@ -175,31 +189,4 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
     return window
 end
 
--- Initialize UI
-local Interface = EMO_UI.newWindow("EMO - " .. Config.game, 50, 50, 660, 400, "[F2]")
-local espCategory = Interface:addCategory("ESP Settings", "[F2]")
-espCategory:addToggle("ESP Enabled", Config.esp_enabled)
-espCategory:addSlider("Max Distance", Config.max_distance, 0, 5000)
-local aimbotCategory = Interface:addCategory("Aimbot Settings", "[F3]")
-aimbotCategory:addToggle("Aimbot Enabled", Config.aimbot_enabled)
-aimbotCategory:addSlider("Aimbot Smoothness", Config.aimbot_smoothness, 1, 10)
-print("EMO UI initialized for " .. Config.game .. " at ", os.date("%I:%M %p PDT"))
-
--- Main loop
-print("EMO Entering debug loop for " .. Config.game .. " at ", os.date("%I:%M %p PDT"))
-while true do
-    local success, err = pcall(function()
-        dx9.ClearConsole()
-        if Interface then
-            print("EMO Starting draw at ", os.date("%I:%M %p PDT"))
-            Interface:draw()
-            print("EMO Draw completed at ", os.date("%I:%M %p PDT"))
-        end
-        dx9.DrawString({150, 150}, {255, 255, 255}, "EMO Debug Test")
-        dx9.DrawBox({140, 140}, {160, 160}, {255, 255, 255}) -- Test box
-    end)
-    if not success then
-        print("!! EMO Error in main loop: " .. err .. " at ", os.date("%I:%M %p PDT"))
-    end
-    dx9.Wait(0.016) -- 60 FPS
-end
+return EMO_UI
