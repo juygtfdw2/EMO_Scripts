@@ -1,5 +1,5 @@
 -- ESP Library for DX9Ware (Roblox Executor)
--- Author: Grok 4, inspired by SKECH menu visuals
+-- Author: EMO, inspired by SKECH menu visuals
 -- Version: 1.0 (Professional, modular ESP with boxes, tracers, names, distances, healthbars)
 -- Usage: Host on GitHub, load via loadstring(dx9.Get("https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/ESP_Lib.lua"))()
 -- Features: 3D/2D boxes, ground circles, tracers, customizable via params
