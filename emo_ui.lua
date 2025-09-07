@@ -2,6 +2,12 @@
 -- Author: Built from scratch for reliability by EMO, inspired by "SKECH" and adapted from Brycki404's DXLibUI
 -- Enhanced with drag support, quality improvements, collapsible categories, toggle keybinds, and deadzones
 
+-- Validate environment
+if not dx9 or not dx9.GetMouse or not dx9.DrawFilledBox then
+    error("EMO_UI requires dx9 functions to be available")
+    return
+end
+
 if _G.EMO_LIB == nil then
     _G.EMO_LIB = {
         Key = dx9.GetKey(),
@@ -62,17 +68,17 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
     }
     Lib.Windows[title] = window
     Lib.WindowCount = Lib.WindowCount + 1
-    window.activeCategory = window.categories[1] -- Set first category as active by default
+    print("EMO_UI: Window " .. title .. " created at ", os.date("%I:%M %p PDT"))
 
     function window:toggle()
         self.visible = not self.visible
-        print("EMO Window " .. self.title .. " toggled: ", self.visible, " at ", os.date("%I:%M %p PDT"))
+        print("EMO_UI: Window " .. self.title .. " toggled: ", self.visible, " at ", os.date("%I:%M %p PDT"))
     end
 
     function window:draw()
-        print("EMO Starting window draw at ", os.date("%I:%M %p PDT"), " visible: ", self.visible)
+        print("EMO_UI: Starting window draw at ", os.date("%I:%M %p PDT"), " visible: ", self.visible)
         if not self.visible then 
-            print("EMO Window not visible, skipping draw at ", os.date("%I:%M %p PDT"))
+            print("EMO_UI: Window not visible, skipping draw at ", os.date("%I:%M %p PDT"))
             return 
         end
         local loc = self.location
@@ -83,12 +89,12 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         dx9.DrawFilledBox({loc[1] - 1, loc[2] - 1}, {loc[1] + size[1] + 1, loc[2] + size[2] + 1}, Lib.Black)
         dx9.DrawFilledBox(loc, {loc[1] + size[1], loc[2] + size[2]}, self.theme.background)
         dx9.DrawFilledBox({loc[1] + 1, loc[2] + 1}, {loc[1] + size[1] - 1, loc[2] + size[2] - 1}, self.theme.outline)
-        print("EMO Drew frame at ", os.date("%I:%M %p PDT"), " coords: ", loc[1], loc[2], size[1], size[2])
+        print("EMO_UI: Drew frame at ", os.date("%I:%M %p PDT"), " coords: ", loc[1], loc[2], size[1], size[2])
 
         -- Header with drag region
         dx9.DrawFilledBox({loc[1], loc[2]}, {loc[1] + size[1], loc[2] + 30}, self.theme.accent)
         dx9.DrawString({loc[1] + 10, loc[2] + 5}, self.theme.font, "EMO - " .. self.title)
-        print("EMO Drew header at ", os.date("%I:%M %p PDT"))
+        print("EMO_UI: Drew header at ", os.date("%I:%M %p PDT"))
 
         -- Navigation panel
         local navX = loc[1]
@@ -98,22 +104,21 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         local yOffset = navY + 10
         for _, category in ipairs(self.categories) do
             local isHovered = MouseInArea({navX, yOffset - 5, navEndX, yOffset + 15}, self.deadZone)
-            print("EMO Checking hover for " .. category.name .. " at ", os.date("%I:%M %p PDT"), " area: ", navX, yOffset - 5, navEndX, yOffset + 15, " hovered: ", isHovered)
+            print("EMO_UI: Checking hover for " .. category.name .. " at ", os.date("%I:%M %p PDT"), " area: ", navX, yOffset - 5, navEndX, yOffset + 15, " hovered: ", isHovered)
             local bgColor = isHovered and {0, 200, 80, 0.5} or self.theme.button
             dx9.DrawFilledBox({navX, yOffset - 5}, {navEndX, yOffset + 15}, bgColor)
             dx9.DrawString({navX + 10, yOffset}, self.theme.font, category.name)
             if isHovered and dx9.isLeftClickHeld() then
                 category.collapsed = not category.collapsed
                 self.activeCategory = category.collapsed and nil or category
-                print("EMO Category " .. category.name .. " " .. (category.collapsed and "collapsed" or "expanded") .. " at ", os.date("%I:%M %p PDT"))
+                print("EMO_UI: Category " .. category.name .. " " .. (category.collapsed and "collapsed" or "expanded") .. " at ", os.date("%I:%M %p PDT"))
             end
             yOffset = yOffset + 25
         end
-        print("EMO Drew navigation panel at ", os.date("%I:%M %p PDT"), " coords: ", navX, navY, navEndX, loc[2] + size[2])
+        print("EMO_UI: Drew navigation panel at ", os.date("%I:%M %p PDT"), " coords: ", navX, navY, navEndX, loc[2] + size[2])
 
         -- Content area
         if self.activeCategory and not self.activeCategory.collapsed then
-            print("EMO Attempting to draw content for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"))
             local contentX = loc[1] + self.navWidth + 10
             local contentWidth = size[1] - self.navWidth - 10
             if contentX + contentWidth > loc[1] + size[1] then contentWidth = size[1] - self.navWidth - 10 end
@@ -122,11 +127,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             dx9.DrawFilledBox({contentX - 2, contentY - 2}, {contentX + contentWidth + 2, contentY + self.maxContentHeight + 2}, self.theme.outline)
             dx9.DrawFilledBox({contentX, contentY}, {contentX + contentWidth, contentY + self.maxContentHeight}, self.theme.background)
             self.activeCategory:draw(contentX, contentY, maxY)
-            print("EMO Drew content area for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"), " coords: ", contentX, contentY, contentWidth, self.maxContentHeight)
-        elseif self.activeCategory then
-            print("EMO Content area skipped, category " .. (self.activeCategory.name or "unknown") .. " is collapsed at ", os.date("%I:%M %p PDT"))
-        else
-            print("EMO No active category to draw content at ", os.date("%I:%M %p PDT"))
+            print("EMO_UI: Drew content area for " .. self.activeCategory.name .. " at ", os.date("%I:%M %p PDT"), " coords: ", contentX, contentY, contentWidth, self.maxContentHeight)
         end
 
         -- Dragging support
@@ -140,7 +141,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             if self.location[2] < 0 then self.location[2] = 0 end
             if self.location[1] + size[1] > dx9.size().width then self.location[1] = dx9.size().width - size[1] end
             if self.location[2] + size[2] > dx9.size().height then self.location[2] = dx9.size().height - size[2] end
-            print("EMO Dragging at ", os.date("%I:%M %p PDT"), " new loc: ", self.location[1], self.location[2])
+            print("EMO_UI: Dragging at ", os.date("%I:%M %p PDT"), " new loc: ", self.location[1], self.location[2])
         elseif not dx9.isLeftClickHeld() then
             self.dragging = false
             self.winMouseOffset = nil
@@ -153,9 +154,9 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
         elseif not Lib.Key or Lib.Key ~= self.toggleKey then
             self.toggleKeyHolding = false
         end
-        print("EMO Checking toggle key ", self.toggleKey, " at ", os.date("%I:%M %p PDT"), " key pressed: ", Lib.Key == self.toggleKey, " raw key: ", tostring(Lib.Key))
+        print("EMO_UI: Checking toggle key ", self.toggleKey, " at ", os.date("%I:%M %p PDT"), " key pressed: ", Lib.Key == self.toggleKey, " raw key: ", Lib.Key)
 
-        print("EMO Draw completed at ", os.date("%I:%M %p PDT"))
+        print("EMO_UI: Draw completed at ", os.date("%I:%M %p PDT"))
     end
 
     function window:addCategory(name, toggleKey)
@@ -165,7 +166,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
             for _, control in ipairs(self.controls) do
                 control.x, control.y = x + 10, yPos
                 if yPos + control.height > maxY then
-                    print("!! EMO Control out of bounds at ", os.date("%I:%M %p PDT"), " type: ", control.text, " coords: ", control.x, control.y, " maxY: ", maxY)
+                    print("EMO_UI: Control out of bounds at ", os.date("%I:%M %p PDT"), " type: ", control.text, " coords: ", control.x, control.y, " maxY: ", maxY)
                     yPos = yPos + 30 -- Skip to next position
                     goto continue
                 end
@@ -173,7 +174,7 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                     control:draw()
                 end)
                 if not success then
-                    print("!! EMO Failed to draw control at ", os.date("%I:%M %p PDT"), " type: ", control.text or "unknown", " coords: ", control.x, control.y, " error: ", debug.traceback())
+                    print("EMO_UI: Failed to draw control at ", os.date("%I:%M %p PDT"), " type: ", control.text or "unknown", " coords: ", control.x, control.y, " error: ", debug.traceback())
                 end
                 yPos = yPos + 30
                 ::continue::
@@ -188,11 +189,11 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                     dx9.DrawString({self.x + 5, self.y + 5}, self.theme.font, self.text .. ": " .. tostring(self.state))
                     if MouseInArea({self.x, self.y, self.x + self.width, self.y + self.height}, window.deadZone) and dx9.isLeftClickHeld() then
                         self.state = not self.state
-                        print("EMO " .. self.text .. " toggled for " .. Config.game .. ": ", self.state, " at ", os.date("%I:%M %p PDT"))
+                        print("EMO_UI: " .. self.text .. " toggled for " .. Config.game .. ": ", self.state, " at ", os.date("%I:%M %p PDT"))
                     end
                 end)
                 if not success then
-                    print("!! EMO Failed to draw toggle " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y, " error: ", debug.traceback())
+                    print("EMO_UI: Failed to draw toggle " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y, " error: ", debug.traceback())
                 end
             end
             table.insert(self.controls, toggle)
@@ -210,18 +211,18 @@ function EMO_UI.newWindow(title, x, y, width, height, toggleKey)
                     if MouseInArea({self.x, self.y, self.x + self.width, self.y + self.height}, window.deadZone) and dx9.isLeftClickHeld() then
                         local mouseX = dx9.GetMouse().x - self.x - 5
                         self.value = math.floor(math.clamp(mouseX / (self.width - 20) * (self.max - self.min) + self.min, self.min, self.max))
-                        print("EMO " .. self.text .. " adjusted for " .. Config.game .. ": ", self.value, " at ", os.date("%I:%M %p PDT"))
+                        print("EMO_UI: " .. self.text .. " adjusted for " .. Config.game .. ": ", self.value, " at ", os.date("%I:%M %p PDT"))
                     end
                 end)
                 if not success then
-                    print("!! EMO Failed to draw slider " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y, " error: ", debug.traceback())
+                    print("EMO_UI: Failed to draw slider " .. self.text .. " at ", os.date("%I:%M %p PDT"), " coords: ", self.x, self.y, " error: ", debug.traceback())
                 end
             end
             table.insert(self.controls, slider)
             return slider
         end
         table.insert(window.categories, category)
-        if not window.activeCategory then window.activeCategory = category end -- Ensure first category is active
+        if not window.activeCategory then window.activeCategory = category end
         return category
     end
     activeWindow = window
